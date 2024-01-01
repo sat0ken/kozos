@@ -50,3 +50,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+.idea
+kzload
+kzload.mot
+cmake-build-debug/
