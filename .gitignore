@@ -54,3 +54,4 @@ dkms.conf
 kzload
 kzload.mot
 cmake-build-debug/
+h8write
