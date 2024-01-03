@@ -1,8 +1,6 @@
-//
-// Created by satoken on 24/01/02.
-//
+#ifndef _XMODEM_H_INCLUDED_
+#define _XMODEM_H_INCLUDED_
 
-#ifndef KOZOS_XMODEM_H
-#define KOZOS_XMODEM_H
+long xmodem_recv(char *buf);
 
-#endif //KOZOS_XMODEM_H
+#endif
