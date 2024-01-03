@@ -9,8 +9,11 @@ static int static_bss;
 
 static int init(void)
 {
+    // リンカスクリプトで定義したシンボルを参照する
     extern int erodata, data_start, edata, bss_start, ebss;
+    // ROMからRAMへデータコピー
     memcpy(&data_start, &erodata, (long)&edata - (long)&data_start);
+    // RAMの.bssセクションを初期化することで配置された初期値を持たない変数を初期化
     memset(&bss_start, 0, (long)&ebss - (long)&bss_start);
 
     serial_init(SERIAL_DEFAULT_DEVICE);

@@ -4,11 +4,12 @@ ENTRY("_start")
 
 MEMORY
 {
-    romall(rx)  : o = 0x000000, l = 0x080000
-    vectors(r)  : o = 0x000000, l = 0x000100
+    /* ROMの定義 o=origin=開始アドレス l=length=領域のサイズ */
+    romall(rx)  : o = 0x000000, l = 0x080000    /* 512KB ROMの全域 */
+    vectors(r)  : o = 0x000000, l = 0x000100    /* 割り込みベクタ */
     rom(rx)     : o = 0x000100, l = 0x07ff00
-
-    ramall(rwx) : o = 0xffbf20, l = 0x004000
+    /* RAMの定義 */
+    ramall(rwx) : o = 0xffbf20, l = 0x004000    /* RAMの全域 */
     data(rwx)   : o = 0xfffc20, l = 0x000300
     stack(rw)   : o = 0xffff00, l = 0x000000
 }
@@ -18,13 +19,13 @@ SECTIONS
 
 	.vectors : {
 		vector.o(.data)
-	} > vectors
+	} > vectors     /* .vectorsセクションをMEMORYコマンドで定義した割り込みベクタに配置する */
 
 	.text : {
 	    _text_start = . ;
 		*(.text)
 		_etext = . ;
-	} > rom
+	} > rom         /* .textセクションをROMに配置する */
 
 	.rodata : {
 	    _rodata_start = . ;
@@ -39,6 +40,8 @@ SECTIONS
 		*(.data)
 		_edata = . ;
 	} > data AT> rom
+	/* .dataセクションはRAMに配置されてプログラムはRAMを仮想アドレスとして読み書きする。*/
+	/* AR> romで物理アドレスはROMになる。*/
 
 	.bss : {
 	    _bss_start = . ;
