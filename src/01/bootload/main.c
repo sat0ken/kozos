@@ -2,6 +2,7 @@
 #include "serial.h"
 #include "lib.h"
 #include "xmodem.h"
+#include "elf.h"
 
 int global_data = 0x10;
 int global_bss;
@@ -78,6 +79,8 @@ int main(void)
             putxval(size, 0);
             puts("\n");
             dump(loadbuf, size);
+        } else if (!strcmp(buf, "run")) {
+            elf_load(loadbuf);
         } else {
             puts("unknown.\n");
         }
