@@ -3,6 +3,7 @@
 #include "lib.h"
 #include "xmodem.h"
 #include "elf.h"
+#include "interrupt.h"
 
 int global_data = 0x10;
 int global_bss;
@@ -18,6 +19,10 @@ static int init(void)
     // RAMの.bssセクションを初期化することで配置された初期値を持たない変数を初期化
     memset(&bss_start, 0, (long)&ebss - (long)&bss_start);
 
+    // ソフトウェア割り込みベクタを初期化する
+    softvec_init();
+
+    // シリアルの初期化
     serial_init(SERIAL_DEFAULT_DEVICE);
     return 0;
 }
@@ -59,6 +64,9 @@ int main(void)
     extern int buffer_start;
     char *entry_point;
     void (*f)(void);
+
+    // 最初の初期化処理は割り込み無効の状態で行う
+    INTR_DISABLE;
 
     init();
     puts("kzload (kozos boot loader) started.\n");

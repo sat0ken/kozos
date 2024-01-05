@@ -1,25 +1,47 @@
 #include "defines.h"
 #include "serial.h"
+#include "intr.h"
+#include "interrupt.h"
 #include "lib.h"
 
-int main(void)
+static void intr(softvec_type_t type, unsigned long sp)
 {
+    int c;
     static char buf[32];
-    puts("Hello World!\n");
-    puts("OK!!!\n");
+    static int len;
 
-    while (1) {
-        puts("> ");
-        gets(buf);
+    c = getc();
 
+    if (c != '\n') {
+        buf[len++] = c;
+    } else {
+        buf[len++] = '\0';
         if (!strncmp(buf, "echo", 4)) {
             puts(buf + 4);
             puts("\n");
-        } else if (!strcmp(buf, "exit")) {
-            break;
         } else {
-            puts("unknown.\n");
+            puts("unkown.\n");
         }
+        puts("> ");
+        len = 0;
+    }
+}
+
+int main(void)
+{
+    INTR_DISABLE;
+
+    puts("kozos boot succeed!\n");
+
+    // ソフトウェア割り込みベクタにシリアル割り込みハンドラを設定
+    softvec_setintr(SOFTVEC_TYPE_SERINTR, intr);
+    // シリアル受信割り込みを有効化
+    serial_intr_recv_enable(SERIAL_DEFAULT_DEVICE);
+
+    puts("> ");
+    INTR_ENABLE;
+    while (1) {
+        asm volatile ("sleep");
     }
     return 0;
 }

@@ -38,7 +38,7 @@ struct h8_3069f_sci {
 #define H8_3096F_SCI_SCR_MPIE   (1<<3)
 #define H8_3096F_SCI_SCR_RE     (1<<4)
 #define H8_3096F_SCI_SCR_TE     (1<<5)
-#define H8_3096F_SCI_SCR_RTE    (1<<6)
+#define H8_3069F_SCI_SCR_RIE    (1<<6)
 #define H8_3096F_SCI_SCR_TIE    (1<<7)
 
 // SSRの各ビットの定義

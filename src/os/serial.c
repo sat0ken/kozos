@@ -38,7 +38,7 @@ struct h8_3069f_sci {
 #define H8_3096F_SCI_SCR_MPIE   (1<<3)
 #define H8_3096F_SCI_SCR_RE     (1<<4)
 #define H8_3096F_SCI_SCR_TE     (1<<5)
-#define H8_3096F_SCI_SCR_RTE    (1<<6)
+#define H8_3069F_SCI_SCR_RIE    (1<<6)
 #define H8_3096F_SCI_SCR_TIE    (1<<7)
 
 // SSRの各ビットの定義
@@ -111,4 +111,52 @@ unsigned char serial_recv_byte(int index)
     sci->ssr &= ~H8_3096F_SCI_SSR_RDRF;
 
     return c;
+}
+
+// 送信割り込みが有効か？
+int serial_intr_is_send_enable(int index)
+{
+    volatile struct h8_3069f_sci *sci = regs[index].sci;
+    // SCRのTIEビットの値を返す
+    return (sci->scr & H8_3096F_SCI_SCR_TIE) ? 1 : 0;
+}
+
+// 送信割り込みの有効化
+void serial_intr_send_enable(int index)
+{
+    volatile struct h8_3069f_sci *sci = regs[index].sci;
+    // SCRのTIEビットを立てる
+    sci->scr |= H8_3096F_SCI_SCR_TIE;
+}
+
+// 送信割り込みの無効化
+void serial_intr_send_disable(int index)
+{
+    volatile struct h8_3069f_sci *sci = regs[index].sci;
+    // SCRのTIEビットを落とす
+    sci->scr &= ~H8_3096F_SCI_SCR_TIE;
+}
+
+// 受信割り込みが有効か？
+int serial_intr_is_recv_enable(int index)
+{
+    volatile struct h8_3069f_sci *sci = regs[index].sci;
+    // SCRのRIEビットの値を返す
+    return (sci->scr & H8_3069F_SCI_SCR_RIE) ? 1 : 0;
+}
+
+// 受信割り込みの有効化
+void serial_intr_recv_enable(int index)
+{
+    volatile struct h8_3069f_sci *sci = regs[index].sci;
+    // SCRのRIEビットを立てる
+    sci->scr |= H8_3069F_SCI_SCR_RIE;
+}
+
+// 受信割り込みの無効化
+void serial_intr_recv_disable(int index)
+{
+    volatile struct h8_3069f_sci *sci = regs[index].sci;
+    // SCRのRIEビットを落とす
+    sci->scr &= ~H8_3069F_SCI_SCR_RIE;
 }
