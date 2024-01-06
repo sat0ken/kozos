@@ -4,6 +4,7 @@
 #include "interrupt.h"
 #include "syscall.h"
 #include "lib.h"
+#include "memory.h"
 
 #define THREAD_NUM 6
 #define THREAD_NAME_SIZE 15
@@ -223,6 +224,19 @@ static int thread_chpri(int priority)
     return old;
 }
 
+static void *thread_kmalloc(int size)
+{
+    putcurrent();
+    return kzmem_alloc(size);
+}
+
+static int thread_kmfree(char *p)
+{
+    kzmem_free(p);
+    putcurrent();
+    return 0;
+}
+
 // 割り込みハンドラの登録
 static int setintr(softvec_type_t type, kz_handler_t handler)
 {
@@ -261,6 +275,12 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *param)
             break;
         case KZ_SYSCALL_TYPE_CHPRI:
             param->un.chpri.ret = thread_chpri(param->un.chpri.priority);
+            break;
+        case KZ_SYSCALL_TYPE_KMALLOC:
+            param->un.kmalloc.ret = thread_kmalloc(param->un.kmalloc.size);
+            break;
+        case KZ_SYSCALL_TYPE_KMFREE:
+            param->un.kmfree.ret = thread_kmfree(param->un.kmfree.p);
             break;
         default:
             break;
@@ -329,6 +349,8 @@ static void thread_intr(softvec_type_t type, unsigned long sp)
 // 初期スレッドを起動しOSの動作を開始
 void kz_start(kz_func_t func, char *name, int priority, int stacksize, int argc, char *argv[])
 {
+    kzmem_init();
+    
     current = NULL;
     // 各種データの初期化
     memset(readyque, 0, sizeof(readyque));
