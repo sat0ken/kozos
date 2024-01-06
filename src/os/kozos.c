@@ -350,7 +350,7 @@ static void thread_intr(softvec_type_t type, unsigned long sp)
 void kz_start(kz_func_t func, char *name, int priority, int stacksize, int argc, char *argv[])
 {
     kzmem_init();
-    
+
     current = NULL;
     // 各種データの初期化
     memset(readyque, 0, sizeof(readyque));
