@@ -1,30 +1,13 @@
 #include "defines.h"
-#include "serial.h"
-#include "intr.h"
+#include "kozos.h"
 #include "interrupt.h"
 #include "lib.h"
 
-static void intr(softvec_type_t type, unsigned long sp)
+static int start_threads(int argc, char *argv[])
 {
-    int c;
-    static char buf[32];
-    static int len;
+    kz_run(test08_1_main, "command", 0x100, 0, NULL);
 
-    c = getc();
-
-    if (c != '\n') {
-        buf[len++] = c;
-    } else {
-        buf[len++] = '\0';
-        if (!strncmp(buf, "echo", 4)) {
-            puts(buf + 4);
-            puts("\n");
-        } else {
-            puts("unkown.\n");
-        }
-        puts("> ");
-        len = 0;
-    }
+    return 0;
 }
 
 int main(void)
@@ -33,16 +16,9 @@ int main(void)
 
     puts("kozos boot succeed!\n");
 
-    // ソフトウェア割り込みベクタにシリアル割り込みハンドラを設定
-    softvec_setintr(SOFTVEC_TYPE_SERINTR, intr);
-    // シリアル受信割り込みを有効化
-    serial_intr_recv_enable(SERIAL_DEFAULT_DEVICE);
+    // OSの動作開始
+    kz_start(start_threads, "start", 0x100, 0, NULL);
 
-    puts("> ");
-    INTR_ENABLE;
-    while (1) {
-        asm volatile ("sleep");
-    }
     return 0;
 }
 

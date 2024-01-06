@@ -19,8 +19,9 @@ H8WRITE = ../tools/h8write/h8write
 # Linux:/dev/ttySx, Linux(USB):/dev/ttyUSBx, Windows:comX
 H8WRITE_SERDEV = /dev/ttyUSB0
 
-OBJS  = startup.o main.o
-OBJS += lib.o serial.o interrupt.o
+OBJS  = startup.o main.o interrupt.o
+OBJS += lib.o serial.o
+OBJS += kozos.o syscall.o test08_1.o
 
 TARGET = kozos
 
@@ -29,7 +30,7 @@ CFLAGS = -Wall -mh -nostdinc -nostdlib -fno-builtin
 CFLAGS += -I.
 #CFLAGS += -g
 CFLAGS += -Os
-CFLAGS += -DKZLOAD
+CFLAGS += -DKOZOS
 
 LFLAGS = -static -T ld.scr -L.
 
