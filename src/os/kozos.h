@@ -20,6 +20,7 @@ void kz_sysdown(void);
 
 // システムコールを実行する
 void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param);
+void kz_srvcall(kz_syscall_type_t type, kz_syscall_param_t *param);
 
 // STEP9でシステムコールを追加
 int kz_wait(void);
@@ -31,6 +32,15 @@ void *kz_kmalloc(int size);
 int kz_kmfree(void *p);
 int kz_send(kz_msgbox_id_t id, int size, char *p);
 kz_thread_id_t kz_recv(kz_msgbox_id_t id, int *sizep, char **pp);
+int kz_setintr(softvec_type_t type, kz_handler_t handler);
+
+// STEP12
+int kx_wakeup(kz_thread_id_t id);
+void *kx_kmalloc(int size);
+int kx_kmfree(void *p);
+int kx_send(kz_msgbox_id_t id, int size, char *p);
+
+int consdrv_main(int argc, char *argv[]);
 
 // ユーザスレッド
 //int test08_1_main(int argc, char *argv[]);
@@ -38,8 +48,9 @@ kz_thread_id_t kz_recv(kz_msgbox_id_t id, int *sizep, char **pp);
 //int test09_2_main(int argc, char *argv[]);
 //int test09_3_main(int argc, char *argv[]);
 //int test10_1_main(int argc, char *argv[]);
-int test11_1_main(int argc, char *argv[]);
-int test11_2_main(int argc, char *argv[]);
+//int test11_1_main(int argc, char *argv[]);
+//int test11_2_main(int argc, char *argv[]);
+int command_main(int argc, char *argv[]);
 //extern kz_thread_id_t test09_1_id;
 //extern kz_thread_id_t test09_2_id;
 //extern kz_thread_id_t test09_3_id;

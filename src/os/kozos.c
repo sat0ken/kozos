@@ -336,12 +336,14 @@ static kz_thread_id_t thread_recv(kz_msgbox_id_t id, int *sizep, char **pp)
 
 
 // 割り込みハンドラの登録
-static int setintr(softvec_type_t type, kz_handler_t handler)
+static int thread_setintr(softvec_type_t type, kz_handler_t handler)
 {
     static void thread_intr(softvec_type_t type, unsigned long sp);
 
     softvec_setintr(type, thread_intr);
     handlers[type] = handler;
+
+    putcurrent();
 
     return 0;
 }
@@ -386,6 +388,9 @@ static void call_functions(kz_syscall_type_t type, kz_syscall_param_t *param)
         case KZ_SYSCALL_TYPE_RECV:
             param->un.recv.ret = thread_recv(param->un.recv.id, param->un.recv.sizep, param->un.recv.pp);
             break;
+        case KZ_SYSCALL_TYPE_SETINTR:
+            param->un.setintr.ret = thread_setintr(param->un.setintr.type, param->un.setintr.handler);
+            break;
         default:
             break;
     }
@@ -397,6 +402,12 @@ static void syscall_proc(kz_syscall_type_t type, kz_syscall_param_t *param)
     // カレントスレッドをキューから外す
     getcurrent();
     // システムコールの処理関数を呼ぶ
+    call_functions(type, param);
+}
+
+static void srvcall_proc(kz_syscall_type_t type, kz_syscall_param_t *param)
+{
+    current = NULL;
     call_functions(type, param);
 }
 
@@ -462,8 +473,8 @@ void kz_start(kz_func_t func, char *name, int priority, int stacksize, int argc,
     memset(handlers, 0, sizeof(handlers));
     memset(msgboxes, 0, sizeof(msgboxes));
     // 割り込みハンドラの登録
-    setintr(SOFTVEC_TYPE_SYSCALL, syscall_intr);
-    setintr(SOFTVEC_TYPE_SOFTERR, softerr_intr);
+    thread_setintr(SOFTVEC_TYPE_SYSCALL, syscall_intr);
+    thread_setintr(SOFTVEC_TYPE_SOFTERR, softerr_intr);
     // 初期スレッドを生成
     current = (kz_thread *)thread_run(func, name, priority, stacksize, argc, argv);
     // スレッドを起動
@@ -485,4 +496,9 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param)
     current->syscall.param = param;
     // トラップ命令で割り込みを発生させる
     asm volatile ("trapa #0");
+}
+
+void kz_srvcall(kz_syscall_type_t type, kz_syscall_param_t *param)
+{
+    srvcall_proc(type, param);
 }
