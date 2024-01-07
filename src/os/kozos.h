@@ -29,15 +29,19 @@ kz_thread_id_t kz_getid(void);
 int kz_chpri(int priority);
 void *kz_kmalloc(int size);
 int kz_kmfree(void *p);
+int kz_send(kz_msgbox_id_t id, int size, char *p);
+kz_thread_id_t kz_recv(kz_msgbox_id_t id, int *sizep, char **pp);
 
 // ユーザスレッド
 //int test08_1_main(int argc, char *argv[]);
 //int test09_1_main(int argc, char *argv[]);
 //int test09_2_main(int argc, char *argv[]);
 //int test09_3_main(int argc, char *argv[]);
-int test10_1_main(int argc, char *argv[]);
-extern kz_thread_id_t test09_1_id;
-extern kz_thread_id_t test09_2_id;
-extern kz_thread_id_t test09_3_id;
+//int test10_1_main(int argc, char *argv[]);
+int test11_1_main(int argc, char *argv[]);
+int test11_2_main(int argc, char *argv[]);
+//extern kz_thread_id_t test09_1_id;
+//extern kz_thread_id_t test09_2_id;
+//extern kz_thread_id_t test09_3_id;
 
 #endif
