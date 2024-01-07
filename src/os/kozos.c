@@ -41,19 +41,26 @@ typedef struct _kz_thread {
     kz_context context;     // スレッドのコンテキスト情報
 } kz_thread;
 
+// タスク間通信のメッセージ構造体
 typedef struct _kz_msgbuf {
     struct _kz_msgbuf *next;
+    // メッセージを送信したスレッド
     kz_thread *sender;
+    // メッセージのパラメータを保存する構造体
     struct {
         int size;
         char *p;
     } param;
 } kz_msgbuf;
 
+// メッセージを入れるボックスの構造体
 typedef struct _kz_msgbox {
+    // メッセージ受信待ちのスレッド
     kz_thread *receiver;
+    // メッセージキュー
     kz_msgbuf *head;
     kz_msgbuf *tail;
+    // 構造体のサイズを調整するダミーメンバ
     long dummy[1];
 } kz_msgbox;
 
@@ -64,9 +71,9 @@ static struct {
 } readyque[PRIORITY_NUM];
 
 static kz_thread *current;                          // 現在実行中のスレッド
-static kz_thread threads[THREAD_NUM];                // タスクコントロールブロック
+static kz_thread threads[THREAD_NUM];               // タスクコントロールブロック
 static kz_handler_t handlers[SOFTVEC_TYPE_NUM];     // OSが管理する割り込みハンドラ
-static kz_msgbox msgboxes[MSGBOX_ID_NUM];
+static kz_msgbox msgboxes[MSGBOX_ID_NUM];           // メッセージボックスの定義
 
 void dispatch(kz_context *context);                 // スレッドのディスパッチ用関数
 
@@ -189,7 +196,7 @@ static kz_thread_id_t thread_run(kz_func_t func, char *name, int priority, int s
     return (kz_thread_id_t)current;
 }
 
-// スレッドの終了
+// スレッドを終了するシステムコール
 static int thread_exit(void)
 {
     puts(current->name);
@@ -198,20 +205,20 @@ static int thread_exit(void)
     return 0;
 }
 
-// スレッドの放棄
+// スレッドを放棄するシステムコール
 static int thread_wait(void)
 {
     putcurrent();
     return 0;
 }
 
-// スレッドのsleep
+// スレッドのsleepするシステムコール
 static int thread_sleep(void)
 {
     return 0;
 }
 
-// スレッドのwakeup
+// スレッドのwakeupするシステムコール
 static int thread_wakeup(kz_thread_id_t id)
 {
     putcurrent();
@@ -221,7 +228,7 @@ static int thread_wakeup(kz_thread_id_t id)
     return 0;
 }
 
-// スレッドのID取得
+// スレッドのIDを取得するシステムコール
 static kz_thread_id_t thread_getid(void)
 {
     putcurrent();
@@ -229,7 +236,7 @@ static kz_thread_id_t thread_getid(void)
     return (kz_thread_id_t)current;
 }
 
-// 優先度の変更
+// 優先度の変更をするシステムコール
 static int thread_chpri(int priority)
 {
     int old = current->priority;
@@ -241,12 +248,14 @@ static int thread_chpri(int priority)
     return old;
 }
 
+// メモリの確保をするシステムコール
 static void *thread_kmalloc(int size)
 {
     putcurrent();
     return kzmem_alloc(size);
 }
 
+// メモリの解放をするシステムコール
 static int thread_kmfree(char *p)
 {
     kzmem_free(p);
@@ -254,10 +263,11 @@ static int thread_kmfree(char *p)
     return 0;
 }
 
+// メッセージの送信処理
 static void sendmsg(kz_msgbox *mboxp, kz_thread *thp, int size, char *p)
 {
     kz_msgbuf *mp;
-
+    // メッセージバッファを作成
     mp = (kz_msgbuf *) kzmem_alloc(sizeof(*mp));
     if (mp == NULL) {
         kz_sysdown();
@@ -266,7 +276,7 @@ static void sendmsg(kz_msgbox *mboxp, kz_thread *thp, int size, char *p)
     mp->sender = thp;
     mp->param.size = size;
     mp->param.p = p;
-
+    // メッセージボックスのキューの末尾にメッセージを追加
     if (mboxp->tail) {
         mboxp->tail->next = mp;
     } else {
@@ -275,17 +285,21 @@ static void sendmsg(kz_msgbox *mboxp, kz_thread *thp, int size, char *p)
     mboxp->tail = mp;
 }
 
+// メッセージの受信処理
 static void recvmsg(kz_msgbox *mboxp)
 {
     kz_msgbuf *mp;
     kz_syscall_param_t *p;
 
+    // キューの先頭からメッセージを取り出す
     mp = mboxp->head;
     mboxp->head = mp->next;
     if (mboxp->head == NULL) {
         mboxp->tail = NULL;
     }
     mp->next = NULL;
+
+    // メッセージを受信するスレッドに渡すパラメータを設定する
     p = mboxp->receiver->syscall.param;
     p->un.recv.ret = (kz_thread_id_t)mp->sender;
     if (p->un.recv.sizep) {
@@ -295,25 +309,31 @@ static void recvmsg(kz_msgbox *mboxp)
         *(p->un.recv.pp) = mp->param.p;
     }
     mboxp->receiver = NULL;
-
+    // メッセージバッファを解放
     kzmem_free(mp);
 }
 
+// メッセージを送信するシステムコール
 static int thread_send(kz_msgbox_id_t id, int size, char *p)
 {
     kz_msgbox *mboxp = &msgboxes[id];
 
     putcurrent();
+    // メッセージを送信
     sendmsg(mboxp, current, size, p);
-
+    // 受信待ちスレッドが存在している場合は受信処理を行う
     if (mboxp->receiver) {
+        // 受信待ちスレッドをカレントにする
         current = mboxp->receiver;
+        // 受信処理をする
         recvmsg(mboxp);
+        // 受信が済んだらブロック解除
         putcurrent();
     }
     return size;
 }
 
+// メッセージを受信するシステムコール
 static kz_thread_id_t thread_recv(kz_msgbox_id_t id, int *sizep, char **pp)
 {
     kz_msgbox *mboxp = &msgboxes[id];
@@ -321,14 +341,16 @@ static kz_thread_id_t thread_recv(kz_msgbox_id_t id, int *sizep, char **pp)
     if (mboxp->receiver) {
         kz_sysdown();
     }
-
+    // 受信待ちスレッドを設定
     mboxp->receiver = current;
 
     if (mboxp->head == NULL) {
+        // メッセージボックスにメッセージが無いので、スレッドをスリープさせる
         return -1;
     }
-
+    // メッセージを受信
     recvmsg(mboxp);
+    // スレッドをキューに戻す
     putcurrent();
 
     return current->syscall.param->un.recv.ret;
@@ -405,6 +427,7 @@ static void syscall_proc(kz_syscall_type_t type, kz_syscall_param_t *param)
     call_functions(type, param);
 }
 
+// サービスコールの処理
 static void srvcall_proc(kz_syscall_type_t type, kz_syscall_param_t *param)
 {
     current = NULL;
@@ -464,6 +487,7 @@ static void thread_intr(softvec_type_t type, unsigned long sp)
 // 初期スレッドを起動しOSの動作を開始
 void kz_start(kz_func_t func, char *name, int priority, int stacksize, int argc, char *argv[])
 {
+    // 動的メモリの初期化
     kzmem_init();
 
     current = NULL;
@@ -498,6 +522,7 @@ void kz_syscall(kz_syscall_type_t type, kz_syscall_param_t *param)
     asm volatile ("trapa #0");
 }
 
+// サービスコール呼び出し用ライブラリ関数
 void kz_srvcall(kz_syscall_type_t type, kz_syscall_param_t *param)
 {
     srvcall_proc(type, param);
